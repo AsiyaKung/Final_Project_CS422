@@ -1,5 +1,6 @@
 // POST /api/tasks  – create a task and fire a Node-RED notification
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { v4 as uuidv4 } from "uuid";
 
@@ -82,19 +83,21 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       });
 
-    // ── Trigger Node-RED notification (awaited so Vercel doesn't kill it early) ──
+    // ── Trigger Node-RED notification (after response, non-blocking) ──
     if (team.webhookUrl) {
-      await triggerNodeRed({
-        event: "task_created",
-        taskId,
-        taskTitle: title,
-        teamId,
-        teamName: team.name,
-        actorName: actor.name ?? actor.email ?? "Someone",
-        assignedTo: assignedTo ?? undefined,
-        webhookUrl: team.webhookUrl,
-        timestamp: new Date().toISOString(),
-      }).catch((e) => console.error("[Node-RED notify error]", e));
+      after(
+        triggerNodeRed({
+          event: "task_created",
+          taskId,
+          taskTitle: title,
+          teamId,
+          teamName: team.name,
+          actorName: actor.name ?? actor.email ?? "Someone",
+          assignedTo: assignedTo ?? undefined,
+          webhookUrl: team.webhookUrl,
+          timestamp: new Date().toISOString(),
+        }).catch((e) => console.error("[Node-RED notify error]", e))
+      );
     }
 
     return ok({ taskId }, 201);

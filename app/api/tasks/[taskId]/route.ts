@@ -1,6 +1,7 @@
 // PATCH /api/tasks/[taskId]  – update a task
 // DELETE /api/tasks/[taskId] – delete a task
 import { NextRequest } from "next/server";
+import { after } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 
 import { requireAuth, AuthError } from "@/lib/firebase/authServer";
@@ -69,16 +70,18 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
       const teamDoc = await db.collection("teams").doc(task.teamId).get();
       const team = teamDoc.data();
       if (team?.webhookUrl) {
-        await triggerNodeRed({
-          event: "task_completed",
-          taskId: taskId,
-          taskTitle: task.title,
-          teamId: task.teamId,
-          teamName: team.name,
-          actorName: actor.name ?? actor.email ?? "Someone",
-          webhookUrl: team.webhookUrl,
-          timestamp: new Date().toISOString(),
-        }).catch((e) => console.error("[Node-RED notify error]", e));
+        after(
+          triggerNodeRed({
+            event: "task_completed",
+            taskId: taskId,
+            taskTitle: task.title,
+            teamId: task.teamId,
+            teamName: team.name,
+            actorName: actor.name ?? actor.email ?? "Someone",
+            webhookUrl: team.webhookUrl,
+            timestamp: new Date().toISOString(),
+          }).catch((e) => console.error("[Node-RED notify error]", e))
+        );
       }
     }
 
