@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
         updatedAt: now,
       });
 
-    // ── Trigger Node-RED notification (non-blocking) ─────────
+    // ── Trigger Node-RED notification (awaited so Vercel doesn't kill it early) ──
     if (team.webhookUrl) {
-      triggerNodeRed({
+      await triggerNodeRed({
         event: "task_created",
         taskId,
         taskTitle: title,
