@@ -10,6 +10,7 @@ import {
   Shield,
   User,
   ChevronDown,
+  UserMinus,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -29,17 +30,22 @@ import type { MemberProfile } from "@/lib/firebase/firestore";
 function MemberRow({
   member,
   isOwner,
+  isAdmin,
   currentUserId,
   teamId,
   updateRole,
+  kickMember,
 }: {
   member: MemberProfile;
   isOwner: boolean;
+  isAdmin: boolean;
   currentUserId: string;
   teamId: string;
   updateRole: (userId: string, role: "admin" | "member") => Promise<void>;
+  kickMember: (userId: string) => Promise<void>;
 }) {
   const [saving, setSaving] = useState(false);
+  const [kicking, setKicking] = useState(false);
 
   const handleChange = async (newRole: "admin" | "member") => {
     setSaving(true);
@@ -52,6 +58,25 @@ function MemberRow({
       setSaving(false);
     }
   };
+
+  const handleKick = async () => {
+    if (!confirm(`Kick "${member.name}" from the team?`)) return;
+    setKicking(true);
+    try {
+      await kickMember(member.userId);
+      toast.success(`${member.name} has been kicked.`);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to kick member");
+    } finally {
+      setKicking(false);
+    }
+  };
+
+  // Can this actor kick this member?
+  const canKick =
+    member.role !== "owner" &&
+    member.userId !== currentUserId &&
+    (isOwner || (isAdmin && member.role === "member"));
 
   const roleIcon =
     member.role === "owner" ? (
@@ -97,25 +122,47 @@ function MemberRow({
 
       {/* Role — dropdown for owner, badge otherwise */}
       {isOwner && member.role !== "owner" && member.userId !== currentUserId ? (
-        <div className="relative flex-shrink-0">
-          <select
-            value={member.role}
-            disabled={saving}
-            onChange={(e) => handleChange(e.target.value as "admin" | "member")}
-            className="appearance-none pl-3 pr-7 py-1 rounded-full text-xs font-medium bg-dark-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-neon-400/30 cursor-pointer disabled:opacity-50"
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative">
+            <select
+              value={member.role}
+              disabled={saving}
+              onChange={(e) => handleChange(e.target.value as "admin" | "member")}
+              className="appearance-none pl-3 pr-7 py-1 rounded-full text-xs font-medium bg-dark-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-neon-400/30 cursor-pointer disabled:opacity-50"
+            >
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-dark-400" />
+          </div>
+          <button
+            onClick={handleKick}
+            disabled={kicking}
+            title="Kick member"
+            className="p-1.5 rounded-lg text-dark-400 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
           >
-            <option value="admin">Admin</option>
-            <option value="member">Member</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-dark-400" />
+            <UserMinus className="w-3.5 h-3.5" />
+          </button>
         </div>
       ) : (
-        <span
-          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleBadgeColor}`}
-        >
-          {roleIcon}
-          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-        </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${roleBadgeColor}`}
+          >
+            {roleIcon}
+            {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+          </span>
+          {canKick && (
+            <button
+              onClick={handleKick}
+              disabled={kicking}
+              title="Kick member"
+              className="p-1.5 rounded-lg text-dark-400 hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+            >
+              <UserMinus className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -137,7 +184,11 @@ function TeamCard({
     members,
     loading: membersLoading,
     updateMemberRole,
+    kickMember,
   } = useTeamMembers(team.teamId);
+
+  const myRole = members.find((m) => m.userId === currentUserId)?.role;
+  const isAdmin = myRole === "admin";
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(team.inviteCode);
@@ -201,9 +252,11 @@ function TeamCard({
                     <MemberRow
                       member={m}
                       isOwner={isOwner}
+                      isAdmin={isAdmin}
                       currentUserId={currentUserId}
                       teamId={team.teamId}
                       updateRole={updateMemberRole}
+                      kickMember={kickMember}
                     />
                   </div>
                 ))}

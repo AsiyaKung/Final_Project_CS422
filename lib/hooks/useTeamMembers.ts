@@ -49,5 +49,17 @@ export function useTeamMembers(teamId: string | null) {
     if (!res.ok) throw new Error(body.error ?? "Failed to update role");
   }
 
-  return { members, loading, myRole, updateMemberRole };
+  /** Owner/admin only: kick a member from the team */
+  async function kickMember(userId: string): Promise<void> {
+    if (!teamId) throw new Error("No team selected");
+    const token = await getToken();
+    const res = await fetch(`/api/teams/${teamId}/members/${userId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error ?? "Failed to kick member");
+  }
+
+  return { members, loading, myRole, updateMemberRole, kickMember };
 }
