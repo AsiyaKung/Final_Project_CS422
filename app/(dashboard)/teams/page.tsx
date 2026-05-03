@@ -127,7 +127,9 @@ function MemberRow({
             <select
               value={member.role}
               disabled={saving}
-              onChange={(e) => handleChange(e.target.value as "admin" | "member")}
+              onChange={(e) =>
+                handleChange(e.target.value as "admin" | "member")
+              }
               className="appearance-none pl-3 pr-7 py-1 rounded-full text-xs font-medium bg-dark-800 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-neon-400/30 cursor-pointer disabled:opacity-50"
             >
               <option value="admin">Admin</option>
