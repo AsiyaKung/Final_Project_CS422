@@ -65,10 +65,17 @@ export function useTasks(teamId: string | null) {
     if (!res.ok) {
       let errorMsg = `Failed to update task (HTTP ${res.status})`;
       try {
-        const body = await res.json();
-        errorMsg = body.error ?? errorMsg;
+        const text = await res.text();
+        // Try to parse as JSON first
+        try {
+          const body = JSON.parse(text);
+          errorMsg = body.error ?? errorMsg;
+        } catch {
+          // Not JSON — show first 200 chars of raw response
+          errorMsg = `Server error (${res.status}): ${text.slice(0, 200)}`;
+        }
       } catch {
-        // response was not JSON (e.g. Vercel 500 HTML page)
+        // Can't read body at all
       }
       throw new Error(errorMsg);
     }
