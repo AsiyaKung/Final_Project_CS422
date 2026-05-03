@@ -1,0 +1,221 @@
+[
+  {
+    "id": "flow_taskflow_main",
+    "type": "tab",
+    "label": "TaskFlow – Discord Notifications",
+    "disabled": false,
+    "info": "Receives task events from the Next.js backend and forwards them to the team's Discord webhook."
+  },
+
+  {
+    "id": "http_in_task",
+    "type": "http in",
+    "z": "flow_taskflow_main",
+    "name": "POST /task",
+    "url": "/task",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 120,
+    "y": 120,
+    "wires": [["validate_secret"]]
+  },
+
+  {
+    "id": "validate_secret",
+    "type": "function",
+    "z": "flow_taskflow_main",
+    "name": "Validate X-Internal-Secret",
+    "func": "// Validate shared secret\nvar secret = env.get('NODE_RED_SECRET');\nvar incoming = msg.req.headers['x-internal-secret'];\n\n// If NODE_RED_SECRET is not configured in this Node-RED instance, allow through\n// (useful during local dev – set the env var in production)\nif (!secret) {\n    node.warn('[TaskFlow] NODE_RED_SECRET not set in Node-RED env – skipping auth check');\n    node.send([msg, null]);\n    return;\n}\n\nif (incoming !== secret) {\n    msg.statusCode = 403;\n    msg.payload = { error: 'Forbidden' };\n    node.send([null, msg]);\n    return;\n}\n\nnode.send([msg, null]);",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 320,
+    "y": 120,
+    "wires": [["build_discord_message"], ["http_response_error"]]
+  },
+
+  {
+    "id": "build_discord_message",
+    "type": "function",
+    "z": "flow_taskflow_main",
+    "name": "Build Discord Embed",
+    "func": "var data = msg.payload;\n\n// Choose colour + emoji based on event type\nvar eventConfig = {\n    task_created:   { color: 0x00D4FF, emoji: '🆕', label: 'New Task Created' },\n    task_completed: { color: 0x22C55E, emoji: '✅', label: 'Task Completed' },\n    task_updated:   { color: 0xF59E0B, emoji: '✏️', label: 'Task Updated' }\n};\nvar cfg = eventConfig[data.event] || { color: 0x94A3B8, emoji: '📋', label: data.event };\n\nvar embed = {\n    embeds: [{\n        title:       cfg.emoji + ' ' + cfg.label,\n        description: '**' + (data.taskTitle || 'Untitled') + '**',\n        color:       cfg.color,\n        fields: [\n            {\n                name:   '👥 Team',\n                value:  data.teamName || 'Unknown',\n                inline: true\n            },\n            {\n                name:   '👤 By',\n                value:  data.actorName || 'Unknown',\n                inline: true\n            },\n            {\n                name:   '⏰ Time',\n                value:  new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(data.timestamp)) + ' (ICT)',\n                inline: false\n            }\n        ],\n        footer: { text: 'TaskFlow • Smart Task System' },\n        timestamp: data.timestamp\n    }]\n};\n\nif (data.assignedTo) {\n    embed.embeds[0].fields.splice(2, 0, {\n        name:   '📌 Assigned To',\n        value:  data.assignedTo,\n        inline: true\n    });\n}\n\nmsg.webhookUrl = data.webhookUrl;\nmsg.payload    = embed;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 540,
+    "y": 120,
+    "wires": [["send_to_discord"]]
+  },
+
+  {
+    "id": "send_to_discord",
+    "type": "http request",
+    "z": "flow_taskflow_main",
+    "name": "POST Discord Webhook",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "{{{webhookUrl}}}",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "authType": "",
+    "senderr": true,
+    "headers": [
+      {
+        "keyType": "str",
+        "keyValue": "Content-Type",
+        "valueType": "str",
+        "valueValue": "application/json"
+      }
+    ],
+    "x": 760,
+    "y": 120,
+    "wires": [["check_discord_response"], ["discord_error_log"]]
+  },
+
+  {
+    "id": "check_discord_response",
+    "type": "function",
+    "z": "flow_taskflow_main",
+    "name": "Check Discord Status",
+    "func": "// Discord returns 204 No Content on success\nvar status = msg.statusCode;\nif (status >= 200 && status < 300) {\n    node.log('[TaskFlow] Discord webhook delivered, status=' + status);\n    node.send([msg, null]);\n} else {\n    node.warn('[TaskFlow] Discord returned error status=' + status + ' body=' + JSON.stringify(msg.payload));\n    node.send([null, msg]);\n}",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 980,
+    "y": 100,
+    "wires": [["log_success", "http_response_ok"], ["discord_error_log"]]
+  },
+
+  {
+    "id": "discord_error_log",
+    "type": "debug",
+    "z": "flow_taskflow_main",
+    "name": "Discord Error",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1200,
+    "y": 60,
+    "wires": []
+  },
+
+  {
+    "id": "log_success",
+    "type": "debug",
+    "z": "flow_taskflow_main",
+    "name": "Log Response",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "statusCode",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1200,
+    "y": 100,
+    "wires": []
+  },
+
+  {
+    "id": "http_response_ok",
+    "type": "function",
+    "z": "flow_taskflow_main",
+    "name": "200 OK",
+    "func": "msg.statusCode = 200;\nmsg.payload    = { success: true, message: 'Notification sent' };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1200,
+    "y": 140,
+    "wires": [["http_response"]]
+  },
+
+  {
+    "id": "http_response_error",
+    "type": "function",
+    "z": "flow_taskflow_main",
+    "name": "403 Forbidden",
+    "func": "msg.statusCode = 403;\nmsg.payload    = { success: false, error: 'Forbidden' };\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 540,
+    "y": 200,
+    "wires": [["http_response"]]
+  },
+
+  {
+    "id": "http_response",
+    "type": "http response",
+    "z": "flow_taskflow_main",
+    "name": "HTTP Response",
+    "statusCode": "",
+    "headers": {},
+    "x": 1400,
+    "y": 140,
+    "wires": []
+  },
+
+  {
+    "id": "comment_iot",
+    "type": "comment",
+    "z": "flow_taskflow_main",
+    "name": "── ESP32 / IoT Integration ──",
+    "info": "An ESP32 can POST to this same /task endpoint:\n\n  POST http://<your-nodered-host>/task\n  Headers: X-Internal-Secret: <NODE_RED_SECRET>\n  Body: {\n    \"event\": \"task_created\",\n    \"taskTitle\": \"Read book\",\n    \"teamId\": \"xxx\",\n    \"teamName\": \"My Team\",\n    \"actorName\": \"ESP32 Device\",\n    \"webhookUrl\": \"https://discord.com/api/webhooks/...\",\n    \"timestamp\": \"2024-01-01T00:00:00Z\"\n  }\n\nIf the ESP32 doesn't have the webhookUrl, it can POST to /task/iot\nand use the teamId lookup flow below.",
+    "x": 180,
+    "y": 300,
+    "wires": []
+  },
+
+  {
+    "id": "http_in_iot",
+    "type": "http in",
+    "z": "flow_taskflow_main",
+    "name": "POST /task/iot (ESP32)",
+    "url": "/task/iot",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 160,
+    "y": 380,
+    "wires": [["iot_log"]]
+  },
+
+  {
+    "id": "iot_log",
+    "type": "debug",
+    "z": "flow_taskflow_main",
+    "name": "IoT Payload",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 380,
+    "y": 380,
+    "wires": []
+  }
+]

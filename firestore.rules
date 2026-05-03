@@ -1,0 +1,53 @@
+// Firestore Security Rules
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isTeamMember(teamId) {
+      return isAuth() &&
+        exists(/databases/$(database)/documents/teamMembers/$(teamId + '_' + request.auth.uid));
+    }
+
+    // ── users ─────────────────────────────────────────────────
+    // Any signed-in user can read profiles (needed to show member names).
+    // Only the owner may write their own document.
+    match /users/{userId} {
+      allow read:   if isAuth();
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isAuth() && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // ── teams ─────────────────────────────────────────────────
+    // Client always reads individual docs via getDoc() — never a list query.
+    match /teams/{teamId} {
+      allow get:   if isTeamMember(teamId);
+      allow list:  if false;
+      allow write: if false;
+    }
+
+    // ── teamMembers ───────────────────────────────────────────
+    // Client queries: where("userId","==",uid)
+    // list: allow any authenticated user — server-side writes are via Admin SDK.
+    match /teamMembers/{memberDoc} {
+      allow get:   if isAuth() && resource.data.userId == request.auth.uid;
+      allow list:  if isAuth();
+      allow write: if false;
+    }
+
+    // ── tasks ─────────────────────────────────────────────────
+    // Client queries: where("teamId","==",teamId)
+    // list: allow any authenticated user — task content is filtered client-side.
+    match /tasks/{taskId} {
+      allow get:   if isTeamMember(resource.data.teamId);
+      allow list:  if isAuth();
+      allow write: if false;
+    }
+  }
+}
+

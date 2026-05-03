@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    /* Smoother text on all platforms */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-dark-950 text-dark-100 font-sans antialiased;
+    min-height: 100vh;
+    /* GPU-accelerate composited layers */
+    transform: translateZ(0);
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/20;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-neon-400/25 text-white;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────────────── */
+@layer utilities {
+  /* Glass card effect */
+  .glass {
+    @apply bg-white/[0.04] backdrop-blur-md border border-white/8 rounded-2xl;
+  }
+
+  /* Neon text glow */
+  .text-glow-cyan {
+    text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+  }
+  .text-glow-violet {
+    text-shadow: 0 0 20px rgba(124, 58, 237, 0.5);
+  }
+
+  /* Neon border pulse animation */
+  .border-neon-pulse {
+    animation: border-pulse 2s ease-in-out infinite;
+  }
+
+  /* Card / element fade-in used by Card.tsx */
+  .animate-fade-in-up {
+    animation: fade-in-up 0.22s ease-out both;
+  }
+
+  /* Prevent layout shift on animated elements */
+  .will-change-transform {
+    will-change: transform;
+  }
+}
+
+/* ── Keyframes ────────────────────────────────────────────── */
+@keyframes border-pulse {
+  0%,
+  100% {
+    border-color: rgba(0, 212, 255, 0.3);
+  }
+  50% {
+    border-color: rgba(0, 212, 255, 0.7);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
