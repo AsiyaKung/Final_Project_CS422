@@ -14,31 +14,31 @@ type RouteContext = { params: Promise<{ taskId: string }> };
 
 // ── PATCH ──────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest, { params }: RouteContext) {
-  const { taskId } = await params;
-  const ip = getClientIp(req);
-  if (!rateLimit(`tasks:update:${ip}`, 60, 60_000))
-    return err("Too many requests", 429);
-
-  let actor;
   try {
-    actor = await requireAuth(req);
-  } catch (e) {
-    return e instanceof AuthError
-      ? err(e.message, e.statusCode)
-      : err("Unauthorized", 401);
-  }
+    const { taskId } = await params;
+    const ip = getClientIp(req);
+    if (!rateLimit(`tasks:update:${ip}`, 60, 60_000))
+      return err("Too many requests", 429);
 
-  let body;
-  try {
-    body = await req.json();
-  } catch {
-    return err("Invalid JSON body", 400);
-  }
+    let actor;
+    try {
+      actor = await requireAuth(req);
+    } catch (e) {
+      return e instanceof AuthError
+        ? err(e.message, e.statusCode)
+        : err("Unauthorized", 401);
+    }
 
-  const parsed = updateTaskSchema.safeParse(body);
-  if (!parsed.success) return err(parsed.error.errors[0].message, 422);
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return err("Invalid JSON body", 400);
+    }
 
-  try {
+    const parsed = updateTaskSchema.safeParse(body);
+    if (!parsed.success) return err(parsed.error.errors[0].message, 422);
+
     const db = getAdminDb();
     const taskRef = db.collection("tasks").doc(taskId);
     const taskSnap = await taskRef.get();
@@ -91,21 +91,21 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
 // ── DELETE ─────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest, { params }: RouteContext) {
-  const { taskId } = await params;
-  const ip = getClientIp(req);
-  if (!rateLimit(`tasks:delete:${ip}`, 20, 60_000))
-    return err("Too many requests", 429);
-
-  let actor;
   try {
-    actor = await requireAuth(req);
-  } catch (e) {
-    return e instanceof AuthError
-      ? err(e.message, e.statusCode)
-      : err("Unauthorized", 401);
-  }
+    const { taskId } = await params;
+    const ip = getClientIp(req);
+    if (!rateLimit(`tasks:delete:${ip}`, 20, 60_000))
+      return err("Too many requests", 429);
 
-  try {
+    let actor;
+    try {
+      actor = await requireAuth(req);
+    } catch (e) {
+      return e instanceof AuthError
+        ? err(e.message, e.statusCode)
+        : err("Unauthorized", 401);
+    }
+
     const db = getAdminDb();
     const taskRef = db.collection("tasks").doc(taskId);
     const taskSnap = await taskRef.get();

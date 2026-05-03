@@ -38,7 +38,7 @@ export function useTasks(teamId: string | null) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      let errorMsg = "Failed to create task";
+      let errorMsg = `Failed to create task (HTTP ${res.status})`;
       try {
         const body = await res.json();
         errorMsg = body.error ?? errorMsg;
@@ -63,7 +63,7 @@ export function useTasks(teamId: string | null) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      let errorMsg = "Failed to update task";
+      let errorMsg = `Failed to update task (HTTP ${res.status})`;
       try {
         const body = await res.json();
         errorMsg = body.error ?? errorMsg;
@@ -81,7 +81,7 @@ export function useTasks(teamId: string | null) {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
-      let errorMsg = "Failed to delete task";
+      let errorMsg = `Failed to delete task (HTTP ${res.status})`;
       try {
         const body = await res.json();
         errorMsg = body.error ?? errorMsg;
