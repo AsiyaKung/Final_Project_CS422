@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
             actorName: actor.name ?? actor.email ?? "Someone",
             webhookUrl: team.webhookUrl,
             timestamp: new Date().toISOString(),
-          }).catch((e) => console.error("[Node-RED notify error]", e))
+          }).catch((e) => console.error("[Node-RED notify error]", e)),
         );
       }
     }
