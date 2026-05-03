@@ -8,6 +8,7 @@ import {
   where,
   onSnapshot,
   Unsubscribe,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "./config";
 import type { Task, Team, TeamMember, AppUser } from "@/types";
@@ -97,6 +98,7 @@ export interface MemberProfile {
   name: string;
   email: string;
   photoURL?: string;
+  joinedAt?: Timestamp | Date;
 }
 
 /**
@@ -122,9 +124,10 @@ export function subscribeToTeamMembersWithProfiles(
             return {
               userId: m.userId,
               role: m.role,
-              name: userData?.name || userData?.displayName || "Unknown",
+              name: userData?.name || "Unknown",
               email: userData?.email ?? "",
               photoURL: userData?.photoURL,
+              joinedAt: m.joinedAt,
             } as MemberProfile;
           }),
         );
