@@ -1,16 +1,21 @@
-// Server-safe sanitisation using isomorphic-dompurify.
-// Strips HTML/script tags and XSS vectors from user-supplied strings.
-import DOMPurify from "isomorphic-dompurify";
+// Server-safe sanitisation – strips HTML tags and common XSS vectors
+// using regex (no jsdom/dompurify dependency which breaks on Vercel serverless).
 
 /**
- * Strip all HTML tags and attributes.
- * Use for any user-supplied text that will be rendered or stored.
+ * Strip all HTML tags and trim whitespace.
+ * Sufficient for plain-text fields (titles, descriptions, names).
  */
 export function sanitize(input: string): string {
-  return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-  }).trim();
+  return input
+    .replace(/<[^>]*>/g, "") // strip HTML tags
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/<[^>]*>/g, "") // second pass after entity decode
+    .trim();
 }
 
 /**
