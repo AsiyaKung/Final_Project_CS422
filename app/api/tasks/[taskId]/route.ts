@@ -84,8 +84,9 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
     return ok({ updated: true });
   } catch (e) {
-    console.error("[PATCH /api/tasks/:taskId]", e);
-    return err("Internal server error", 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[PATCH /api/tasks/:taskId]", msg);
+    return err(`Internal server error: ${msg}`, 500);
   }
 }
 
@@ -128,8 +129,9 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
     await taskRef.delete();
     return ok({ deleted: true });
   } catch (e) {
-    console.error("[DELETE /api/tasks/:taskId]", e);
-    return err("Internal server error", 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[DELETE /api/tasks/:taskId]", msg);
+    return err(`Internal server error: ${msg}`, 500);
   }
 }
 

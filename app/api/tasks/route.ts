@@ -99,8 +99,9 @@ export async function POST(req: NextRequest) {
 
     return ok({ taskId }, 201);
   } catch (e) {
-    console.error("[POST /api/tasks]", e);
-    return err("Internal server error", 500);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[POST /api/tasks]", msg);
+    return err(`Internal server error: ${msg}`, 500);
   }
 }
 
