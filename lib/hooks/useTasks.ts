@@ -38,8 +38,14 @@ export function useTasks(teamId: string | null) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const body = await res.json();
-      throw new Error(body.error ?? "Failed to create task");
+      let errorMsg = "Failed to create task";
+      try {
+        const body = await res.json();
+        errorMsg = body.error ?? errorMsg;
+      } catch {
+        // response was not JSON (e.g. Vercel 500 HTML page)
+      }
+      throw new Error(errorMsg);
     }
   }
 
@@ -57,8 +63,14 @@ export function useTasks(teamId: string | null) {
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      const body = await res.json();
-      throw new Error(body.error ?? "Failed to update task");
+      let errorMsg = "Failed to update task";
+      try {
+        const body = await res.json();
+        errorMsg = body.error ?? errorMsg;
+      } catch {
+        // response was not JSON (e.g. Vercel 500 HTML page)
+      }
+      throw new Error(errorMsg);
     }
   }
 
@@ -69,8 +81,14 @@ export function useTasks(teamId: string | null) {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) {
-      const body = await res.json();
-      throw new Error(body.error ?? "Failed to delete task");
+      let errorMsg = "Failed to delete task";
+      try {
+        const body = await res.json();
+        errorMsg = body.error ?? errorMsg;
+      } catch {
+        // response was not JSON (e.g. Vercel 500 HTML page)
+      }
+      throw new Error(errorMsg);
     }
   }
 

@@ -38,44 +38,55 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const parsed = updateTaskSchema.safeParse(body);
   if (!parsed.success) return err(parsed.error.errors[0].message, 422);
 
-  const db = getAdminDb();
-  const taskRef = db.collection("tasks").doc(taskId);
-  const taskSnap = await taskRef.get();
+  try {
+    const db = getAdminDb();
+    const taskRef = db.collection("tasks").doc(taskId);
+    const taskSnap = await taskRef.get();
 
-  if (!taskSnap.exists) return err("Task not found", 404);
-  const task = taskSnap.data()!;
+    if (!taskSnap.exists) return err("Task not found", 404);
+    const task = taskSnap.data()!;
 
-  // Verify caller is a team member
-  const memberSnap = await db
-    .collection("teamMembers")
-    .where("teamId", "==", task.teamId)
-    .where("userId", "==", actor.uid)
-    .limit(1)
-    .get();
-  if (memberSnap.empty) return err("Forbidden", 403);
+    // Verify caller is a team member
+    const memberSnap = await db
+      .collection("teamMembers")
+      .where("teamId", "==", task.teamId)
+      .where("userId", "==", actor.uid)
+      .limit(1)
+      .get();
+    if (memberSnap.empty) return err("Forbidden", 403);
 
-  const updates = sanitizeObject({ ...parsed.data } as Record<string, unknown>);
-  await taskRef.update({ ...updates, updatedAt: FieldValue.serverTimestamp() });
+    const updates = sanitizeObject({ ...parsed.data } as Record<
+      string,
+      unknown
+    >);
+    await taskRef.update({
+      ...updates,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
-  // If task is being marked done, fire a Node-RED completion event
-  if (parsed.data.status === "done") {
-    const teamDoc = await db.collection("teams").doc(task.teamId).get();
-    const team = teamDoc.data();
-    if (team?.webhookUrl) {
-      triggerNodeRed({
-        event: "task_completed",
-        taskId: taskId,
-        taskTitle: task.title,
-        teamId: task.teamId,
-        teamName: team.name,
-        actorName: actor.name ?? actor.email ?? "Someone",
-        webhookUrl: team.webhookUrl,
-        timestamp: new Date().toISOString(),
-      }).catch((e) => console.error("[Node-RED notify error]", e));
+    // If task is being marked done, fire a Node-RED completion event
+    if (parsed.data.status === "done") {
+      const teamDoc = await db.collection("teams").doc(task.teamId).get();
+      const team = teamDoc.data();
+      if (team?.webhookUrl) {
+        triggerNodeRed({
+          event: "task_completed",
+          taskId: taskId,
+          taskTitle: task.title,
+          teamId: task.teamId,
+          teamName: team.name,
+          actorName: actor.name ?? actor.email ?? "Someone",
+          webhookUrl: team.webhookUrl,
+          timestamp: new Date().toISOString(),
+        }).catch((e) => console.error("[Node-RED notify error]", e));
+      }
     }
-  }
 
-  return ok({ updated: true });
+    return ok({ updated: true });
+  } catch (e) {
+    console.error("[PATCH /api/tasks/:taskId]", e);
+    return err("Internal server error", 500);
+  }
 }
 
 // ── DELETE ─────────────────────────────────────────────────────
@@ -94,27 +105,32 @@ export async function DELETE(req: NextRequest, { params }: RouteContext) {
       : err("Unauthorized", 401);
   }
 
-  const db = getAdminDb();
-  const taskRef = db.collection("tasks").doc(taskId);
-  const taskSnap = await taskRef.get();
+  try {
+    const db = getAdminDb();
+    const taskRef = db.collection("tasks").doc(taskId);
+    const taskSnap = await taskRef.get();
 
-  if (!taskSnap.exists) return err("Task not found", 404);
-  const task = taskSnap.data()!;
+    if (!taskSnap.exists) return err("Task not found", 404);
+    const task = taskSnap.data()!;
 
-  // Only the task creator or a team admin/owner may delete
-  if (task.createdBy !== actor.uid) {
-    const memberSnap = await db
-      .collection("teamMembers")
-      .where("teamId", "==", task.teamId)
-      .where("userId", "==", actor.uid)
-      .where("role", "in", ["owner", "admin"])
-      .limit(1)
-      .get();
-    if (memberSnap.empty) return err("Forbidden", 403);
+    // Only the task creator or a team admin/owner may delete
+    if (task.createdBy !== actor.uid) {
+      const memberSnap = await db
+        .collection("teamMembers")
+        .where("teamId", "==", task.teamId)
+        .where("userId", "==", actor.uid)
+        .where("role", "in", ["owner", "admin"])
+        .limit(1)
+        .get();
+      if (memberSnap.empty) return err("Forbidden", 403);
+    }
+
+    await taskRef.delete();
+    return ok({ deleted: true });
+  } catch (e) {
+    console.error("[DELETE /api/tasks/:taskId]", e);
+    return err("Internal server error", 500);
   }
-
-  await taskRef.delete();
-  return ok({ deleted: true });
 }
 
 // ── Internal helper ────────────────────────────────────────────
