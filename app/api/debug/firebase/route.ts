@@ -41,5 +41,5 @@ export async function GET(req: NextRequest) {
     adminStatus = `❌ ERROR: ${e instanceof Error ? e.message : String(e)}`;
   }
 
-  return ok({ diagnostics, adminStatus });
+  return ok({ diagnostics, adminStatus, timestamp: new Date().toISOString() });
 }
