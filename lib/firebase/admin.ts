@@ -14,7 +14,14 @@ function ensureAdminInitialised(): void {
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  // Normalize the private key:
+  // 1. Trim leading/trailing whitespace (Vercel sometimes adds it)
+  // 2. Replace literal \n with real newlines (for single-line format)
+  // 3. Normalize \r\n → \n (Windows line endings from Vercel paste)
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.trim()
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n");
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error(
