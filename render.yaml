@@ -1,0 +1,16 @@
+services:
+  # ── Node-RED (Discord notification relay) ────────────────────────────────
+  - type: web
+    name: taskflow-node-red
+    runtime: node
+    rootDir: node-red # build & run from the node-red/ folder
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free # change to starter/standard if you need more resources
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Shared secret between Next.js and Node-RED.
+      # Set the same value in your Next.js service env vars as NODE_RED_SECRET.
+      - key: NODE_RED_SECRET
+        sync: false # fill in manually in the Render dashboard

@@ -1,0 +1,15 @@
+{
+  "name": "taskflow-node-red",
+  "version": "1.0.0",
+  "description": "Node-RED instance for TaskFlow Discord notifications",
+  "private": true,
+  "scripts": {
+    "start": "node-red --settings settings.js"
+  },
+  "dependencies": {
+    "node-red": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
