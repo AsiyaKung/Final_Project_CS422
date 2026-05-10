@@ -73,8 +73,8 @@
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/AsiyaKung/taskflow.git
-cd taskflow
+git clone https://github.com/AsiyaKung/Final_Project_CS422
+cd Final_Project_CS422
 npm install
 ```
 
