@@ -73,7 +73,7 @@
 ### 1. Clone & install
 
 ```bash
-git clone https://github.com/your-org/taskflow.git
+git clone https://github.com/AsiyaKung/taskflow.git
 cd taskflow
 npm install
 ```
