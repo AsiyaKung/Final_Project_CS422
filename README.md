@@ -248,4 +248,4 @@ tasks/{taskId}
 
 ## 📜 License
 
-MIT © 2024 — built for CS422 Final Project
+MIT © 2026 — built for CS422 Final Project
